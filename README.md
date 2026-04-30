@@ -1,2 +1,7 @@
-# bio-it-observability-pipeline
-# This is solution for grope of biology apps. This come big amount of data of second and it falter data and store them in database and display in dashboard.
+# Bio-IT Observability Pipeline
+
+This is a solution for a group of biology apps. It handles a **big amount of data per second**, then it filters the data, stores it in a database, and displays it on a dashboard.
+
+## Environment Setup
+- [ ] Install Docker
+- [ ] Install Docker Compose
