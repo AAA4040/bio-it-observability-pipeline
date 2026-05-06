@@ -12,7 +12,7 @@ if [ ! -f "$LOG_FILE" ]; then
 fi
 
 # 'tail -f' is the standard for real-time log monitoring
-tail -f "$LOG_FILE" | while read -r LINE
+tail -n 0 -f "$LOG_FILE" | while read -r LINE
 do
     # Use case statement for better readability and performance over multiple if/else
     case "$LINE" in
