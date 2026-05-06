@@ -8,7 +8,7 @@ LABEL description="Medical Log Monitor for Bio-IT Pipeline"
 RUN apk add --no-cache bash
 
 # Set the working directory inside the container
-WORKDIR /app
+WORKDIR /scripts
 
 # Copy the script and set execution permissions in separate steps
 COPY monitor.sh .
