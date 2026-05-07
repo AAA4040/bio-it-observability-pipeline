@@ -1,0 +1,11 @@
+1. Status Mapping :
+◦ ​INFO -> System is running healthy (Green Light).
+◦ ​WARNING -> Action required soon (Yellow Light).
+◦ ​ERROR / CRITICAL -> Immediate action required (Red Light).
+2.  ​Bio-Thresholds:
+◦  ​Heart Rate :
+▪ ​Normal: 60 - 100 bpm.
+▪ ​Warning: < 60 or > 100 bpm.
+◦  ​Oxygen Level:
+▪ ​Normal: 95% - 100%.
+▪ ​Critical: < 90%.

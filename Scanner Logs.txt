@@ -1,0 +1,5 @@
+2026-05-01 22:10:01 INFO - Heart Rate Sensor: 72 bpm - Status: Normal
+2026-05-01 22:11:05 WARNING - Oxygen Level: 92% - Status: Low Oxygen
+2026-05-01 22:12:10 ERROR - MRI Scanner: Connection Lost - Status: Critical
+2026-05-01 22:13:15 INFO - Patient ID 4040: Temperature 37.1 C - Status: Normal
+2026-05-01 22:14:20 CRITICAL - Backup Power: Low Battery 10%
