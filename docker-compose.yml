@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  monitor-service:
+    build: .
+    container_name: my-monitor-app
+    volumes:
+      - .:/data
+    stdin_open: true # -i
+    tty: true # -t
