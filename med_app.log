@@ -6,3 +6,4 @@
 2026-05-06 19:30:00 CRITICAL - Patient Oxygen Dropped to 85%
 2026-05-01 22:30:00 CRITICAL - Test Alert
 2026-05-01 22:11:05 WARNING - Oxygen Level: 92% - Status: Low Oxygen
+2026-05-01 22:12:10 ERROR - MRI Scanner: Connection Lost - Status: Critical
