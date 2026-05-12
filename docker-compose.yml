@@ -1,10 +1,20 @@
 version: '3.8'
 
 services:
+  # Service 1: The Log Monitor (Bash Script)
   monitor-service:
     build: .
     container_name: my-monitor-app
     volumes:
       - .:/data
-    stdin_open: true # -i
-    tty: true # -t
+    stdin_open: true 
+    tty: true
+
+  # Service 2: The Web Server (Nginx)
+  web-server:
+    image: nginx:alpine
+    container_name: alerts-web-portal
+    ports:
+      - "8080:80"
+    volumes:
+      - ./critical_alerts.log:/usr/share/nginx/html/index.html:ro
