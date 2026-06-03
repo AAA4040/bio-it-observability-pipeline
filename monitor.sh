@@ -3,6 +3,7 @@
 # Configuration - المتغيرات الخاصة بالملفات والبيئة
 LOG_FILE="${MONITOR_LOG_PATH:-/data/med_app.log}"
 ALERT_FILE="${MONITOR_ALERT_PATH:-/data/critical_alerts.log}"
+LAST_SEND_FILE="/dev/shm/last_telegram_send" # ملف مؤقت في الذاكرة السريعة لتتبع الوقت
 
 # إعدادات قاعدة البيانات
 DB_HOST="${DB_HOST:-db}"
@@ -11,8 +12,12 @@ DB_USER="${DB_USER:-azhar_admin}"
 export PGPASSWORD="${DB_PASS:-secure_password123}"
 
 # --- إعدادات Telegram الحالية الخاصة بك ---
-TELEGRAM_TOKEN="${TELEGRAM_TOKEN:-YOUR_TELEGRAM_BOT_TOKEN_HERE}"
-CHAT_ID="${CHAT_ID:-YOUR_TELEGRAM_CHAT_ID_HERE}"
+TELEGRAM_TOKEN="8616714877:AAGm6RO7lKhJYbX8VBiBIaW9oIVj1uCYpkU"
+CHAT_ID="2099547167"
+
+# تحديد معدل الإرسال (مثلاً منع التكرار خلال 10 ثوانٍ)
+RATE_LIMIT_SECONDS=10 
+echo "0" > "$LAST_SEND_FILE" # تهيئة ملف الوقت بالقيمة صفر
 
 echo "--- Bio-IT Advanced Monitor Started [PostgreSQL + Telegram Mode] ---"
 
@@ -38,18 +43,30 @@ while true; do
                 *CRITICAL*)
                     echo -e "\e[1;41m [CRITICAL] $LINE \e[0m"
                     
-                    # 2. حقن البيانات في PostgreSQL (يعمل بنجاح)
+                    # 2. حقن البيانات في PostgreSQL (يعمل بنجاح دائماً)
                     psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c \
                     "INSERT INTO critical_alerts (patient_id, device_name, raw_message) 
                      VALUES ('$PATIENT_ID', '$DEVICE', '$LINE');"
                     
-                    # 3. إرسال تنبيه Telegram فوراً باستخدام التمرير الآمن والـ URL Encode التلقائي
-                    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-                        -d "chat_id=${CHAT_ID}" \
-                        --data-urlencode "text=🚨 تنبيه طبي عاجل
+                    # 3. منطق الـ Rate Limiting المغلّف لحل مشكلة الـ Subshell
+                    CURRENT_TIME=$(date +%s)
+                    LAST_ALERT_TIME=$(cat "$LAST_SEND_FILE" 2>/dev/null || echo "0")
+                    TIME_DIFF=$((CURRENT_TIME - LAST_ALERT_TIME))
+
+                    if [ "$TIME_DIFF" -ge "$RATE_LIMIT_SECONDS" ]; then
+                        # إرسال تنبيه Telegram بنفس الشكل المفضل لديك تماماً دون أي تغيير
+                        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                            -d "chat_id=${CHAT_ID}" \
+                            --data-urlencode "text=🚨 تنبيه طبي عاجل
 👤 المريض: $PATIENT_ID
 📟 الجهاز: $DEVICE
 📝 السجل: $LINE" > /dev/null
+                        
+                        # تحديث ملف الوقت من داخل الـ Subshell بنجاح
+                        echo "$CURRENT_TIME" > "$LAST_SEND_FILE"
+                    else
+                        echo "[RATE LIMIT] Telegram notification skipped to prevent spamming."
+                    fi
                     
                     echo "$(date '+%Y-%m-%d %H:%M:%S') - ALERT | ID: $PATIENT_ID | Device: $DEVICE" >> "$ALERT_FILE"
                     ;;
