@@ -5,8 +5,8 @@ LABEL maintainer="Azhar Afef"
 LABEL description="Medical Log Monitor for Bio-IT Pipeline"
 
 # Combine commands and clean cache to keep the image small
-RUN apk add --no-cache bash
-
+# تحديث السطر لتثبيت bash و postgresql-client بالإضافة إلى curl و grep الكامل
+RUN apk add --no-cache bash postgresql-client curl grep
 # Set the working directory inside the container
 WORKDIR /scripts
 

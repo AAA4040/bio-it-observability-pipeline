@@ -1,1 +1,10 @@
 2026-05-07 18:57:41 - ALERT: 2026-05-01 22:14:20 CRITICAL - Backup Power: Low Battery 10%
+2026-05-12 17:28:31 - ALERT: 2026-05-01 22:14:20 CRITICAL - Backup Power: Low Battery 10%"CRITICAL: Patient Heart Rate High!" 
+2026-05-12 18:06:28 - ALERT: 2026-05-01 22:14:20 CRITICAL - Backup Power: Low Battery 10%
+2026-05-12 18:17:19 - ALERT: 2026-05-12 21:25:30 CRITICAL - Main Server: Database Connection Failed - Vital Signs lost
+2026-05-12 18:17:30 - ALERT: 2026-05-12 21:20:25 CRITICAL - Patient ID 505: Cardiac Arrest Detected - Code Blue!
+2026-06-03 15:27:07 - ALERT | ID:  | Device: 18
+2026-06-03 15:32:47 - ALERT | ID:  | Device: 18
+2026-06-03 15:36:19 - ALERT | ID: 777 | Device: 18
+2026-06-03 15:36:43 - ALERT | ID: 999 | Device: 18
+2026-06-03 15:56:35 - ALERT | ID: 111 | Device: 19

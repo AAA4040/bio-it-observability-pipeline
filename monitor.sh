@@ -1,42 +1,67 @@
 #!/bin/bash
 
-# Configuration: Path to the log file inside the container
-# This matches the volume mapping in docker-compose.yml
-LOG_FILE="/data/med_app.log"
-ALERT_FILE="/data/critical_alerts.log"
+# Configuration - المتغيرات الخاصة بالملفات والبيئة
+LOG_FILE="${MONITOR_LOG_PATH:-/data/med_app.log}"
+ALERT_FILE="${MONITOR_ALERT_PATH:-/data/critical_alerts.log}"
 
-echo "--- Starting Medical Observability Monitor ---"
-echo "Monitoring: $LOG_FILE"
-echo "Alerts logged to: $ALERT_FILE"
+# إعدادات قاعدة البيانات
+DB_HOST="${DB_HOST:-db}"
+DB_NAME="${DB_NAME:-bio_observability}"
+DB_USER="${DB_USER:-azhar_admin}"
+export PGPASSWORD="${DB_PASS:-secure_password123}"
 
-# Pre-check: Ensure the log file exists before starting to avoid tail errors
-if [ ! -f "$LOG_FILE" ]; then
-    touch "$LOG_FILE"
-    echo "[INFO] Created missing log file: $LOG_FILE"
-fi
+# --- إعدادات Telegram الحالية الخاصة بك ---
+TELEGRAM_TOKEN="${TELEGRAM_TOKEN:-YOUR_TELEGRAM_BOT_TOKEN_HERE}"
+CHAT_ID="${CHAT_ID:-YOUR_TELEGRAM_CHAT_ID_HERE}"
 
-# Optimization: '-n 0' skips history and starts live streaming
-# Pipeline: Stream log -> Read line by line -> Pattern matching
-tail -n 0 -f "$LOG_FILE" | while read -r LINE
-do
-    case "$LINE" in
-        *CRITICAL*)
-            # Bold White text on Red Background for CRITICAL status
-            echo -e "\e[1;41m [CRITICAL] $LINE \e[0m"
-            # Persistence: Log the critical event to a dedicated alert file
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - ALERT: $LINE" >> "$ALERT_FILE"
-            ;;
-        *ERROR*)
-            # Red text for ERROR status
-            echo -e "\e[1;31m [ERROR] $LINE \e[0m"
-            ;;
-        *WARNING*)
-            # Yellow text for WARNING status
-            echo -e "\e[1;33m [WARNING] $LINE \e[0m"
-            ;;
-        *)
-            # Green text for healthy INFO status
-            echo -e "\e[1;32m [INFO] $LINE \e[0m"
-            ;;
-    esac
+echo "--- Bio-IT Advanced Monitor Started [PostgreSQL + Telegram Mode] ---"
+
+# التأكد من وجود الملفات
+touch "$ALERT_FILE"
+[ ! -f "$LOG_FILE" ] && touch "$LOG_FILE" && echo "[INFO] Created log file."
+
+last_lines=$(wc -l < "$LOG_FILE")
+
+while true; do
+    current_lines=$(wc -l < "$LOG_FILE")
+    
+    if [ "$current_lines" -gt "$last_lines" ]; then
+        new_lines_count=$((current_lines - last_lines))
+        
+        tail -n "$new_lines_count" "$LOG_FILE" | while read -r LINE
+        do
+            # 1. التحليل الذكي (Advanced Parsing)
+            PATIENT_ID=$(echo "$LINE" | grep -oP 'ID \d+' | awk '{print $2}' || echo "N/A")
+            DEVICE=$(echo "$LINE" | cut -d':' -f1 | awk '{print $NF}' || echo "System")
+
+            case "$LINE" in
+                *CRITICAL*)
+                    echo -e "\e[1;41m [CRITICAL] $LINE \e[0m"
+                    
+                    # 2. حقن البيانات في PostgreSQL (يعمل بنجاح)
+                    psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c \
+                    "INSERT INTO critical_alerts (patient_id, device_name, raw_message) 
+                     VALUES ('$PATIENT_ID', '$DEVICE', '$LINE');"
+                    
+                    # 3. إرسال تنبيه Telegram فوراً باستخدام التمرير الآمن والـ URL Encode التلقائي
+                    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                        -d "chat_id=${CHAT_ID}" \
+                        --data-urlencode "text=🚨 تنبيه طبي عاجل
+👤 المريض: $PATIENT_ID
+📟 الجهاز: $DEVICE
+📝 السجل: $LINE" > /dev/null
+                    
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - ALERT | ID: $PATIENT_ID | Device: $DEVICE" >> "$ALERT_FILE"
+                    ;;
+                *ERROR*)
+                    echo -e "\e[1;31m [ERROR] $LINE \e[0m"
+                    ;;
+                *)
+                    echo -e "\e[1;32m [INFO] $LINE \e[0m"
+                    ;;
+            esac
+        done
+        last_lines=$current_lines
+    fi
+    sleep 1
 done

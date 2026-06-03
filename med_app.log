@@ -8,3 +8,18 @@
 2026-05-01 22:11:05 WARNING - Oxygen Level: 92% - Status: Low Oxygen
 2026-05-01 22:12:10 ERROR - MRI Scanner: Connection Lost - Status: Critical
 2026-05-01 22:14:20 CRITICAL - Backup Power: Low Battery 10%
+26-05-01 22:10:01 INFO - Heart Rate Sensor: 72 bpm - Status: Normal
+2026-05-01 22:11:05 WARNING - Oxygen Level: 92% - Status: Low Oxygen
+2026-05-01 22:12:10 ERROR - MRI Scanner: Connection Lost - Status: Critical
+2026-05-01 22:13:15 INFO - Patient ID 4040: Temperature 37.1 C - Status: Normal
+2026-05-01 22:14:20 CRITICAL - Backup Power: Low Battery 10%"CRITICAL: Patient Heart Rate High!" 
+2026-05-12 21:00:05 INFO - Patient ID 505: Heart Rate 72 bpm - Status: Stable
+2026-05-12 21:05:10 INFO - Oxygen Saturation: 98% - Normal range
+2026-05-12 21:20:25 CRITICAL - Patient ID 505: Cardiac Arrest Detected - Code Blue!
+2026-05-12 21:25:30 CRITICAL - Main Server: Database Connection Failed - Vital Signs lost
+2026-05-12 23:20:25 CRITICAL - Patient ID 505: Cardiac Arrest Detected - Code Blue!
+2026-06-03 18:30:00 CRITICAL - Test_Bot: Patient ID 000 System is Now Operational!
+2026-06-03 18:35:00 CRITICAL - Ventilator_System: Patient ID 999 Oxygen Dropped
+2026-06-03 18:45:00 CRITICAL - Patient_Monitor: Patient ID 777 Pulse Rate Dropped!
+2026-06-03 18:35:00 CRITICAL - Ventilator_System: Patient ID 999 Oxygen Dropped
+2026-06-03 19:00:00 CRITICAL - Inbound_Data: Patient ID 111 Condition Requiring Attention
