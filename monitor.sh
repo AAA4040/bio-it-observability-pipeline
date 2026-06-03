@@ -12,8 +12,8 @@ DB_USER="${DB_USER:-azhar_admin}"
 export PGPASSWORD="${DB_PASS:-secure_password123}"
 
 # --- إعدادات Telegram الحالية الخاصة بك ---
-TELEGRAM_TOKEN="8616714877:AAGm6RO7lKhJYbX8VBiBIaW9oIVj1uCYpkU"
-CHAT_ID="2099547167"
+TELEGRAM_TOKEN="${TELEGRAM_TOKEN:-YOUR_TELEGRAM_BOT_TOKEN_HERE}"
+CHAT_ID="${CHAT_ID:-YOUR_TELEGRAM_CHAT_ID_HERE}"
 
 # تحديد معدل الإرسال (مثلاً منع التكرار خلال 10 ثوانٍ)
 RATE_LIMIT_SECONDS=10 

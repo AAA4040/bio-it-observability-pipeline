@@ -15,6 +15,7 @@ services:
     networks:
       - monitor-network
 
+  # خدمة المراقبة ومعالجة السجلات
   monitor-app:
     build: .
     container_name: my-monitor-app
@@ -26,6 +27,8 @@ services:
       - DB_NAME=bio_observability
       - DB_USER=azhar_admin
       - DB_PASS=secure_password123
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - CHAT_ID=${CHAT_ID}
     volumes:
       - .:/data
     networks:
