@@ -11,11 +11,11 @@ DB_NAME="${DB_NAME:-bio_observability}"
 DB_USER="${DB_USER:-azhar_admin}"
 export PGPASSWORD="${DB_PASS:-secure_password123}"
 
-# --- إعدادات Telegram الحالية الخاصة بك ---
+# إعدادات Telegram الآمنة عبر متغيرات البيئة
 TELEGRAM_TOKEN="${TELEGRAM_TOKEN:-YOUR_TELEGRAM_BOT_TOKEN_HERE}"
 CHAT_ID="${CHAT_ID:-YOUR_TELEGRAM_CHAT_ID_HERE}"
 
-# تحديد معدل الإرسال (مثلاً منع التكرار خلال 10 ثوانٍ)
+# تحديد معدل الإرسال (منع التكرار خلال 10 ثوانٍ)
 RATE_LIMIT_SECONDS=10 
 echo "0" > "$LAST_SEND_FILE" # تهيئة ملف الوقت بالقيمة صفر
 
@@ -25,60 +25,78 @@ echo "--- Bio-IT Advanced Monitor Started [PostgreSQL + Telegram Mode] ---"
 touch "$ALERT_FILE"
 [ ! -f "$LOG_FILE" ] && touch "$LOG_FILE" && echo "[INFO] Created log file."
 
-last_lines=$(wc -l < "$LOG_FILE")
+# ----------------------------------------------------------------#
+# الحل الأفضل لمشكلة تدوير السجلات واستلاك المعالج (Log Rotation & CPU) #
+# ----------------------------------------------------------------#
+# نستخدم tail -F لمراقبة تدفق البيانات لحظياً والتعافي التلقائي عند تصفير الملف
+tail -F "$LOG_FILE" | while read -r LINE
+do
+    # إزالة رموز ويندوز المخفية للتنظيف الفوري وضمان سلامة النصوص
+    LINE=$(echo "$LINE" | tr -d '\r')
 
-while true; do
-    current_lines=$(wc -l < "$LOG_FILE")
-    
-    if [ "$current_lines" -gt "$last_lines" ]; then
-        new_lines_count=$((current_lines - last_lines))
-        
-        tail -n "$new_lines_count" "$LOG_FILE" | while read -r LINE
-        do
-            # 1. التحليل الذكي (Advanced Parsing)
-            PATIENT_ID=$(echo "$LINE" | grep -oP 'ID \d+' | awk '{print $2}' || echo "N/A")
-            DEVICE=$(echo "$LINE" | cut -d':' -f1 | awk '{print $NF}' || echo "System")
+    # تجنب معالجة الأسطر الفارغة
+    [ -z "$LINE" ] && continue
 
-            case "$LINE" in
-                *CRITICAL*)
-                    echo -e "\e[1;41m [CRITICAL] $LINE \e[0m"
-                    
-                    # 2. حقن البيانات في PostgreSQL (يعمل بنجاح دائماً)
-                    psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c \
-                    "INSERT INTO critical_alerts (patient_id, device_name, raw_message) 
-                     VALUES ('$PATIENT_ID', '$DEVICE', '$LINE');"
-                    
-                    # 3. منطق الـ Rate Limiting المغلّف لحل مشكلة الـ Subshell
-                    CURRENT_TIME=$(date +%s)
-                    LAST_ALERT_TIME=$(cat "$LAST_SEND_FILE" 2>/dev/null || echo "0")
-                    TIME_DIFF=$((CURRENT_TIME - LAST_ALERT_TIME))
+    # التحليل الذكي واستخراج المتغيرات
+    PATIENT_ID=$(echo "$LINE" | grep -oP 'ID \d+' | awk '{print $2}' || echo "N/A")
+    DEVICE=$(echo "$LINE" | cut -d':' -f1 | awk '{print $NF}' || echo "System")
 
-                    if [ "$TIME_DIFF" -ge "$RATE_LIMIT_SECONDS" ]; then
-                        # إرسال تنبيه Telegram بنفس الشكل المفضل لديك تماماً دون أي تغيير
-                        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-                            -d "chat_id=${CHAT_ID}" \
-                            --data-urlencode "text=🚨 تنبيه طبي عاجل
+    case "$LINE" in
+        *CRITICAL*)
+            echo -e "\e[1;41m [CRITICAL] $LINE \e[0m"
+            
+            # ------------------------------------------------------------#
+            # 1. سد ثغرة حقن البيانات (SQL Injection Protection)             #
+            # ------------------------------------------------------------#
+            # نقوم بالهروب (Escape) من علامات الاقتباس المفردة بتحويل ' إلى ''
+            SAFE_LINE=$(echo "$LINE" | sed "s/'/''/g")
+            SAFE_PATIENT_ID=$(echo "$PATIENT_ID" | sed "s/'/''/g")
+            SAFE_DEVICE=$(echo "$DEVICE" | sed "s/'/''/g")
+
+            # ------------------------------------------------------------#
+            # 2. إدارة تتابع الأخطاء (Error Handling & Fault Tolerance)      #
+            # ------------------------------------------------------------#
+            # التحقق من نجاح عملية الإدخال في قاعدة البيانات قبل المضي قدماً
+            if psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c \
+               "INSERT INTO critical_alerts (patient_id, device_name, raw_message) 
+                VALUES ('$SAFE_PATIENT_ID', '$SAFE_DEVICE', '$SAFE_LINE');" > /dev/null 2>&1; then
+                
+                echo "[DB SUCCESS] Alert logged into PostgreSQL database."
+                DB_STATUS_MSG=""
+            else
+                echo -e "\e[1;33m [DB FAILURE] Failed to connect or insert into PostgreSQL! \e[0m"
+                DB_STATUS_MSG="⚠️ (تنبيه: فشل الحفظ في قاعدة البيانات!)"
+            fi
+            
+            # 3. منطق الـ Rate Limiting المغلّف
+            CURRENT_TIME=$(date +%s)
+            LAST_ALERT_TIME=$(cat "$LAST_SEND_FILE" 2>/dev/null || echo "0")
+            TIME_DIFF=$((CURRENT_TIME - LAST_ALERT_TIME))
+
+            if [ "$TIME_DIFF" -ge "$RATE_LIMIT_SECONDS" ]; then
+                # دمج حالة قاعدة البيانات مع الرسالة لضمان الشفافية الكاملة للمهندس
+                FULL_TEXT="🚨 تنبيه طبي عاجل
 👤 المريض: $PATIENT_ID
 📟 الجهاز: $DEVICE
-📝 السجل: $LINE" > /dev/null
-                        
-                        # تحديث ملف الوقت من داخل الـ Subshell بنجاح
-                        echo "$CURRENT_TIME" > "$LAST_SEND_FILE"
-                    else
-                        echo "[RATE LIMIT] Telegram notification skipped to prevent spamming."
-                    fi
-                    
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - ALERT | ID: $PATIENT_ID | Device: $DEVICE" >> "$ALERT_FILE"
-                    ;;
-                *ERROR*)
-                    echo -e "\e[1;31m [ERROR] $LINE \e[0m"
-                    ;;
-                *)
-                    echo -e "\e[1;32m [INFO] $LINE \e[0m"
-                    ;;
-            esac
-        done
-        last_lines=$current_lines
-    fi
-    sleep 1
+📝 السجل: $LINE
+$DB_STATUS_MSG"
+
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                    -d "chat_id=${CHAT_ID}" \
+                    --data-urlencode "text=$FULL_TEXT" > /dev/null
+                
+                echo "$CURRENT_TIME" > "$LAST_SEND_FILE"
+            else
+                echo "[RATE LIMIT] Telegram notification skipped to prevent spamming."
+            fi
+            
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - ALERT | ID: $PATIENT_ID | Device: $DEVICE" >> "$ALERT_FILE"
+            ;;
+        *ERROR*)
+            echo -e "\e[1;31m [ERROR] $LINE \e[0m"
+            ;;
+        *)
+            echo -e "\e[1;32m [INFO] $LINE \e[0m"
+            ;;
+    esac
 done

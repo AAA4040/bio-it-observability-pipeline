@@ -23,3 +23,17 @@
 2026-06-03 18:45:00 CRITICAL - Patient_Monitor: Patient ID 777 Pulse Rate Dropped!
 2026-06-03 18:35:00 CRITICAL - Ventilator_System: Patient ID 999 Oxygen Dropped
 2026-06-03 19:00:00 CRITICAL - Inbound_Data: Patient ID 111 Condition Requiring Attention
+2026-06-03 20:15:00 CRITICAL - System_Test: Patient ID 888 Connection Stabilized
+2026-06-03 20:25:00 CRITICAL - Dialysis_Machine: Patient ID 303 Blood Flow Rate Anomalous!
+2026-06-03 20:40:01 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:02 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:03 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:01 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:02 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:03 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:01 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:02 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 20:40:03 CRITICAL - ICU_Ventilator: Patient ID 606 Sudden Drop!
+2026-06-03 21:00:00 CRITICAL - Security_Check: Patient ID 101 Secure Pipeline Active
+2026-06-03 21:15:00 CRITICAL - Infusion_Pump: Patient ID 707 Dosage Limit Exceeded!
+2026-06-04 18:20:00 CRITICAL - Vent_Admin: Patient's Data ID 909 Check Active
