@@ -18,8 +18,8 @@ The pipeline is built with modularity and low footprint in mind, leveraging core
 ## 🛠️ Tech Stack & Ecosystem
 
 * **Core Scripting:** Linux Bash Scripting (Event-driven streaming)
-* **Containerization & Orchestration:** Docker, Docker Compose[cite: 1]
-* **Database Management:** PostgreSQL[cite: 1]
+* **Containerization & Orchestration:** Docker, Docker Compose.
+* **Database Management:** PostgreSQL.
 * **Security & Parsing:** Regular Expressions (Regex), Advanced Data Sanitization
 * **Integrations:** Telegram Bot API (Webhooks / Real-time alerts)
 
