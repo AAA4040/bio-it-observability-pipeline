@@ -7,7 +7,7 @@
 
 # 1. تحديد مسارات ملف السجلات وإعدادات التنبيه
 LOG_FILE="/app/logs/self_healing.log"
-TARGET_CONTAINER="bio_postgres_db" # الحاوية المستهدفة بالفحص كمثال
+TARGET_CONTAINER="bio-it-database" # الحاوية المستهدفة بالفحص كمثال
 
 # دالة برمجية موحدة للكتابة المنظمة داخل ملف الـ Logs لتسهيل الـ Debugging
 log_message() {

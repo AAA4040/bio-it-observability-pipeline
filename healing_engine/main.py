@@ -5,12 +5,7 @@ import subprocess
 import requests
 import psycopg2
 
-# -----------------------------------------------------------------------------
-# مشروع: Bio-IT Observability Pipeline - محرك التحليل والتشافي الذكي
-# الممارسة الفضلى: حماية الاتصالات + فحص دقيق للـ Exit Codes + تقارير تفاعلية
-# -----------------------------------------------------------------------------
-
-# جلب متغيرات البيئة المؤمنة من ملف الكومبوز
+# جلب متغيرات البيئة المؤمنة
 DB_HOST = os.getenv("DB_HOST", "database")
 DB_NAME = os.getenv("DB_NAME", "bio_observability_db")
 DB_USER = os.getenv("DB_USER", "postgres_user")
@@ -21,51 +16,75 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 LOG_FILE = "/app/logs/self_healing.log"
 
 def log_local(level, message):
-    """دالة لتوثيق التحليلات الذكية داخل ملف السجلات المحلي لتسهيل الـ Debugging"""
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     with open(LOG_FILE, "a") as f:
         f.write(f"[{timestamp}] [{level}] [AI-ENGINE] {message}\n")
 
 def send_telegram_alert(message):
-    """إرسال تنبيه فوري ومجاني لهاتف المستخدم عبر الـ Telegram API"""
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        log_local("WARN", "تنبيه Telegram غير مفعل لعدم توفر مفاتيح البيئة .env")
         return
-    
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
-        response = requests.post(url, json=payload, timeout=10)
-        if response.status_code == 200:
-            log_local("INFO", "🚀 تم إرسال تقرير التشافي الذاتي إلى هاتف المطور عبر Telegram.")
-        else:
-            log_local("ERROR", f"فشل إرسال التنبيه، استجابة السيرفر: {response.status_code}")
+        requests.post(url, json=payload, timeout=10)
     except Exception as e:
-        log_local("ERROR", f"فشل الاتصال بـ شبكة Telegram: {str(e)}")
+        log_local("ERROR", f"فشل الاتصال بـ تليجرام: {str(e)}")
 
 def trigger_self_healing_script():
-    """استدعاء الممرض المنفذ (Bash Script) محلياً وقراءة النتيجة الهندسية منه"""
-    log_local("ACTION" , "🤖 الذكاء الإحصائي رصد نمطاً حرجاً متكرراً! جاري إيقاظ ممرض الـ Bash...")
+    log_local("ACTION" , "🤖 رصد نمط حرج! جاري إيقاظ ممرض الـ Bash...")
     try:
-        # تشغيل السكربت وانتظار مخرجاته ورقم النهاية (Exit Code)
         result = subprocess.run(["/bin/bash", "./scripts/self_healing.sh"], capture_output=True, text=True)
         return result.returncode
     except Exception as e:
-        log_local("CRITICAL", f"عاجز عن استدعاء ملف السكربت محلياً: {str(e)}")
+        log_local("CRITICAL", f"عاجز عن استدعاء السكربت: {str(e)}")
         return -1
 
-def monitor_database_logs():
-    """فحص قاعدة البيانات بذكاء لرصد قفزات الأخطاء المتكررة في الدقيقة الأخيرة"""
-    log_local("INFO", "🎯 انطلق الطبيب المناوب. بدء مراقبة وفحص السجلات الإحصائية...")
-    
+# 🛠️ الدالة الجديدة: تهيئة وإنشاء الجدول تلقائياً لمنع خطأ Relation Does Not Exist
+def initialize_database():
+    print("🏗️ [DB-INIT] Checking database schema and tables...", flush=True)
     while True:
-        conn = None
         try:
-            # محاولة اتصال آمنة ومحمية بقاعدة البيانات تمنع انهيار الحاوية بالكامل
             conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD, connect_timeout=5)
             cursor = conn.cursor()
             
-            # استعلام ذكي: حساب عدد الأخطاء الحرجة المتكررة خلال الـ 60 ثانية الأخيرة فقط
+            # إنشاء الجدول بالأعمدة المهنية المطلوبة للمشروع إن لم يكن موجوداً
+            create_table_query = """
+                CREATE TABLE IF NOT EXISTS system_logs (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    log_level VARCHAR(20) NOT NULL,
+                    source_module VARCHAR(100),
+                    message TEXT NOT NULL
+                );
+            """
+            cursor.execute(create_table_query)
+            conn.commit()
+            
+            cursor.close()
+            conn.close()
+            print("✅ [DB-INIT] Database schema is ready and verified.", flush=True)
+            break
+        except psycopg2.OperationalError:
+            print("📡 [DB-INIT] Waiting for PostgreSQL container to accept connections...", flush=True)
+            time.sleep(3)
+        except Exception as e:
+            print(f"❌ [DB-INIT-ERROR] Initialization failed: {str(e)}", flush=True)
+            time.sleep(5)
+
+def monitor_database_logs():
+    print("📢 [STARTUP] Python AI Engine is initializing...", flush=True)
+    log_local("INFO", "🎯 انطلق الطبيب المناوب. بدء مراقبة وفحص السجلات الإحصائية...")
+    
+    # استدعاء الفحص التلقائي للجدول قبل الدخول في الحلقة اللانهائية
+    initialize_database()
+    
+    while True:
+        print("🔍 [LOOP] Checking database logs status...", flush=True)
+        conn = None
+        try:
+            conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD, connect_timeout=3)
+            cursor = conn.cursor()
+            
             query = """
                 SELECT COUNT(*) FROM system_logs 
                 WHERE log_level IN ('ERROR', 'CRITICAL') 
@@ -77,50 +96,63 @@ def monitor_database_logs():
             cursor.close()
             conn.close()
 
-            # المعيار الإحصائي المتفق عليه (تكرار الخطأ 5 مرات أو أكثر في دقيقة)
+            # طباعة توضيحية لعدد الأخطاء الحالي في الـ Logs
+            print(f"📊 [METRIC] Current critical errors in the last minute: {error_count}", flush=True)
+
             if error_count >= 5:
-                log_local("WARN", f"🚨 مؤشر خطر: رصد {error_count} أخطاء حرجة متكررة في دقيقة واحدة!")
+                print(f"⚠️ [ANOMALY] High error rate detected: {error_count} errors!", flush=True)
+                log_local("WARN", f"🚨 مؤشر خطر: رصد {error_count} أخطاء حرجة متكررة!")
                 
                 # إطلاق الممرض والتقاط النتيجة
                 exit_code = trigger_self_healing_script()
                 
-                # تحليل النتيجة الراجعة وبناء تقرير تليجرام تفاعلي وصريح بناءً عليها
+                # 🛠️ الممارسة الفضلى: قراءة آخر الأسطر من ملف الـ log لإرسالها للهاتف
+                try:
+                    with open(LOG_FILE, "r") as f:
+                        lines = f.readlines()
+                        # جلب آخر 3 أسطر كتبها سكربت الـ Bash أثناء عملية الإنقاذ
+                        last_logs = "".join(lines[-3:]) 
+                except Exception:
+                    last_logs = "تعذر جلب تفاصيل السجل المحلي."
+
+                # تحليل النتيجة الراجعة وبناء تقرير تليجرام غني بالتفاصيل (Rich Report)
                 if exit_code == 0:
                     report = (
                         "✅ *Bio-IT Self-Healing Report*\n\n"
-                        "⚠️ *Status:* Anomaly Detected (High Error Rate).\n"
-                        "🛠️ *Action Taken:* Container was successfully restarted, and dangling memory/caches were pruned.\n"
-                        "📊 *System Health:* Recovered & Stable."
+                        "📊 *Status:* Anomaly Resolved Successfully!\n"
+                        f"🚨 *Trigger:* Detected {error_count} critical errors in 1 minute.\n"
+                        "🐳 *Action:* Automated container inspection & system cache pruning executed.\n\n"
+                        "📜 *Latest Execution Logs:*\n"
+                        f"```text\n{last_logs}\n```\n"
+                        "📈 *System Health:* Recovered & Stable."
                     )
                 elif exit_code == 2:
                     report = (
                         "🚨 *CRITICAL SYSTEM ALERT*\n\n"
                         "❌ *Status:* Self-Healing Failed!\n"
-                        "📉 *Action Taken:* Tried to restart the container, but it fails to boot up properly.\n"
-                        "👨‍💻 *Note:* Immediate developer manual intervention required! Check `self_healing.log`."
+                        "📉 *Action:* Forced restart executed but container is still unresponsive.\n"
+                        f"⚠️ *Latest Logs:*\n```text\n{last_logs}\n```\n"
+                        "👨‍💻 *Note:* Immediate developer manual intervention required!"
                     )
                 else:
-                    report = "⚠️ *Observability Pipeline Notice:* System anomalies triggered the script, but an internal execution error occurred."
+                    report = f"⚠️ *Notice:* Script executed but returned unknown code: {exit_code}"
                 
                 send_telegram_alert(report)
-                
-                # النوم لمدة دقيقتين بعد الإصلاح لإعطاء النظام فرصة للاستقرار وعدم تكرار الإجراء فوراً
                 time.sleep(120)
                 
-        except psycopg2.OperationalError:
-            # في حال كانت قاعدة البيانات نفسها منهارة، لا ينهار السكربت بل يتخذ إجراء تشافي اضطراري فوراً!
-            log_local("CRITICAL", "📡 قاعدة البيانات لا تستجيب (Offline)! البدء في إجراءات التشافي الاضطراري...")
+        except psycopg2.OperationalError as db_err:
+            print(f"📡 [DATABASE OFFLINE] Connection failed: {db_err}", flush=True)
+            log_local("CRITICAL", "📡 قاعدة البيانات لا تستجيب! إجراء تشافي اضطراري...")
             exit_code = trigger_self_healing_script()
-            if exit_code == 0:
-                send_telegram_alert("⚠️ *Database Offline Alert:* PostgreSQL was unresponsive, but the pipeline successfully forced a restart. Verification in progress.")
-            time.sleep(30)
-            
-        except Exception as e:
-            log_local("ERROR", f"خطأ غير متوقع في محرك الفحص: {str(e)}")
             time.sleep(10)
             
-        # فحص دوري خفيف كل 10 ثوانٍ (منخفض الاستهلاك تماماً للـ CPU)
-        time.sleep(10)
+        except Exception as e:
+            print(f"❌ [UNEXPECTED ERROR] {str(e)}", flush=True)
+            log_local("ERROR", f"خطأ غير متوقع: {str(e)}")
+            time.sleep(10)
+            
+        time.sleep(5)
 
 if __name__ == "__main__":
+    print("🚀 [BOOT] Launching main execution thread...", flush=True)
     monitor_database_logs()
