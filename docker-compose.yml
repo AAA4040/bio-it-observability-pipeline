@@ -1,53 +1,68 @@
 version: '3.8'
 
-services:
-  # خدمة قاعدة البيانات - PostgreSQL
-  db:
-    image: postgres:alpine
-    container_name: bio-it-database
-    environment:
-      - POSTGRES_USER=azhar_admin
-      - POSTGRES_PASSWORD=secure_password123
-      - POSTGRES_DB=bio_observability
-    volumes:
-      - postgres_data:/var/lib/postgresql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - monitor-network
-
-  # خدمة المراقبة ومعالجة السجلات
-  monitor-app:
-    build: .
-    container_name: my-monitor-app
-    depends_on:
-      - db
-    environment:
-      - MONITOR_LOG_PATH=/data/med_app.log
-      - DB_HOST=db
-      - DB_NAME=bio_observability
-      - DB_USER=azhar_admin
-      - DB_PASS=secure_password123
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
-      - CHAT_ID=${CHAT_ID}
-    volumes:
-      - .:/data
-    networks:
-      - monitor-network
-
-  # خدمة العرض (Nginx)
-  web-server:
-    image: nginx:alpine
-    container_name: alerts-web-portal
-    ports:
-      - "8080:80"
-    volumes:
-      - .:/usr/share/nginx/html:ro
-    networks:
-      - monitor-network
-
 networks:
-  monitor-network:
+  observability_net:
     driver: bridge
 
 volumes:
-  postgres_data:
+  db_data:
+    driver: local
+  healing_logs:
+    driver: local
+
+services:
+  # 1. الحارس الأمني - يمنع اختراق السيرفر (Host Takeover)
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: bio_socket_proxy
+    privileged: true     # يحتاج امتياز لقراءة السوكيت الحقيقي للمضيف فقط
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # تمرير السوكيت بوضع القراءة فقط للحماية
+    environment:
+      # إعدادات صارمة جداً: غلق كل الأبواب وفتح ما تحتاجه الأتمتة فقط
+      - CONTAINERS=1        # السماح بقراءة حالة الحاويات (للفحص)
+      - POST=1              # السماح بإرسال أوامر (لإعادة التشغيل)
+      - NETWORKS=0          # ممنوع التعديل في الشبكات
+      - VOLUMES=0           # ممنوع التعديل في المجلدات والملفات
+      - IMAGES=0            # ممنوع تحميل أو بناء صور جديدة (حماية من زرع حاويات خبيثة)
+      - SWARM=0
+    networks:
+      - observability_net
+    restart: always
+
+  # 2. الحاوية المدمجة (الطبيب والممرض) - المحلل والمنفذ الذكي
+  ai-self-healing:
+    build:
+      context: ./healing_engine
+      dockerfile: Dockerfile
+    container_name: bio_ai_self_healing
+    depends_on:
+      - socket-proxy
+      - database
+    environment:
+      - DOCKER_HOST=tcp://socket-proxy:2375 # توجيه أوامر دوكر إلى الحارس الأمني وليس للمضيف مباشرة
+      - DB_HOST=database
+      - DB_NAME=bio_observability_db
+      - DB_USER=postgres_user
+      - DB_PASSWORD=your_secure_password
+      - TELEGRAM_BOT_TOKEN=your_bot_token
+      - TELEGRAM_CHAT_ID=your_chat_id
+    volumes:
+      - healing_logs:/app/logs # حفظ السجلات self_healing.log في الهارد ديسك الخارجي بأمان
+    networks:
+      - observability_net
+    restart: always
+
+  # 3. قاعدة البيانات - مخزن البيانات ومستقبل التقارير الاختيارية
+  database:
+    image: postgres:15-alpine
+    container_name: bio_postgres_db
+    environment:
+      - POSTGRES_DB=bio_observability_db
+      - POSTGRES_USER=postgres_user
+      - POSTGRES_PASSWORD=your_secure_password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - observability_net
+    restart: always
